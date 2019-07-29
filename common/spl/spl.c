@@ -6,6 +6,7 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
+#include <command.h>
 #include <common.h>
 #include <dm.h>
 #include <spl.h>
@@ -314,7 +315,8 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	if (boot_from_devices(&spl_image, spl_boot_list,
 			      ARRAY_SIZE(spl_boot_list))) {
 		puts("SPL: failed to boot from all boot devices\n");
-		hang();
+		//hang();
+		do_reset(NULL, 0, 0, NULL);
 	}
 
 	switch (spl_image.os) {
