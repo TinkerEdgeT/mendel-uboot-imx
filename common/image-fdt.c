@@ -32,6 +32,336 @@ static void fdt_error(const char *msg)
 	puts(" - must RESET the board to recover.\n");
 }
 
+struct hw_config
+{
+	int valid;
+
+	int uart1, uart3, uart4;
+	int sai1, sai5;
+	int spi1, spi2;
+	int pwm1, pwm2, pwm3;
+};
+
+static unsigned long hw_skip_comment(char *text)
+{
+	int i = 0;
+	if(*text == '#') {
+		while(*(text + i) != 0x00)
+		{
+			if(*(text + (i++)) == 0x0a)
+				break;
+		}
+	}
+	return i;
+}
+
+static unsigned long hw_skip_line(char *text)
+{
+	if(*text == 0x0a)
+		return 1;
+	else
+		return 0;
+}
+
+static unsigned long get_value(char *text, struct hw_config *hw_conf)
+{
+	int i = 0;
+	if(memcmp(text, "uart1=",  6) == 0) {
+		i = 6;
+		if(memcmp(text + i, "on", 2) == 0) {
+			hw_conf->uart1 = 1;
+			i = i + 2;
+		} else if(memcmp(text + i, "off", 3) == 0) {
+			hw_conf->uart1 = -1;
+			i = i + 3;
+		} else
+			goto invalid_line;
+	} else if(memcmp(text, "uart3=",  6) == 0) {
+		i = 6;
+		if(memcmp(text + i, "on", 2) == 0) {
+			hw_conf->uart3 = 1;
+			i = i + 2;
+		} else if(memcmp(text + i, "off", 3) == 0) {
+			hw_conf->uart3 = -1;
+			i = i + 3;
+		} else
+			goto invalid_line;
+	} else if(memcmp(text, "uart4=",  6) == 0) {
+		i = 6;
+		if(memcmp(text + i, "on", 2) == 0) {
+			hw_conf->uart4 = 1;
+			i = i + 2;
+		} else if(memcmp(text + i, "off", 3) == 0) {
+			hw_conf->uart4 = -1;
+			i = i + 3;
+		} else
+			goto invalid_line;
+	} else if(memcmp(text, "sai1=",  5) == 0) {
+		i = 5;
+		if(memcmp(text + i, "on", 2) == 0) {
+			hw_conf->sai1 = 1;
+			i = i + 2;
+		} else if(memcmp(text + i, "off", 3) == 0) {
+			hw_conf->sai1 = -1;
+			i = i + 3;
+		} else
+			goto invalid_line;
+	} else if(memcmp(text, "sai5=",  5) == 0) {
+		i = 5;
+		if(memcmp(text + i, "on", 2) == 0) {
+			hw_conf->sai5 = 1;
+			i = i + 2;
+		} else if(memcmp(text + i, "off", 3) == 0) {
+			hw_conf->sai5 = -1;
+			i = i + 3;
+		} else
+			goto invalid_line;
+	} else if(memcmp(text, "spi1=",  5) == 0) {
+		i = 5;
+		if(memcmp(text + i, "on", 2) == 0) {
+			hw_conf->spi1 = 1;
+			i = i + 2;
+		} else if(memcmp(text + i, "off", 3) == 0) {
+			hw_conf->spi1 = -1;
+			i = i + 3;
+		} else
+			goto invalid_line;
+	} else if(memcmp(text, "spi2=",  5) == 0) {
+		i = 5;
+		if(memcmp(text + i, "on", 2) == 0) {
+			hw_conf->spi2 = 1;
+			i = i + 2;
+		} else if(memcmp(text + i, "off", 3) == 0) {
+			hw_conf->spi2 = -1;
+			i = i + 3;
+		} else
+			goto invalid_line;
+	} else if(memcmp(text, "pwm1=",  5) == 0) {
+		i = 5;
+		if(memcmp(text + i, "on", 2) == 0) {
+			hw_conf->pwm1 = 1;
+			i = i + 2;
+		} else if(memcmp(text + i, "off", 3) == 0) {
+			hw_conf->pwm1 = -1;
+			i = i + 3;
+		} else
+			goto invalid_line;
+	} else if(memcmp(text, "pwm2=",  5) == 0) {
+		i = 5;
+		if(memcmp(text + i, "on", 2) == 0) {
+			hw_conf->pwm2 = 1;
+			i = i + 2;
+		} else if(memcmp(text + i, "off", 3) == 0) {
+			hw_conf->pwm2 = -1;
+			i = i + 3;
+		} else
+			goto invalid_line;
+	} else if(memcmp(text, "pwm3=",  5) == 0) {
+		i = 5;
+		if(memcmp(text + i, "on", 2) == 0) {
+			hw_conf->pwm3 = 1;
+			i = i + 2;
+		} else if(memcmp(text + i, "off", 3) == 0) {
+			hw_conf->pwm3 = -1;
+			i = i + 3;
+		} else
+			goto invalid_line;
+	} else
+		goto invalid_line;
+
+	while(*(text + i) != 0x00)
+	{
+		if(*(text + (i++)) == 0x0a)
+			break;
+	}
+	return i;
+
+invalid_line:
+	//It's not a legal line, skip it.
+	//printf("get_value: illegal line\n");
+	while(*(text + i) != 0x00)
+	{
+		if(*(text + (i++)) == 0x0a)
+		break;
+	}
+	return i;
+}
+
+static unsigned long hw_parse_property(char *text, struct hw_config *hw_conf)
+{
+	int i = 0;
+	if(memcmp(text, "intf:",  5) == 0) {
+		i = 5;
+		i = i + get_value(text + i, hw_conf);
+	} else {
+		printf("[conf] hw_parse_property: illegal line\n");
+		//It's not a legal line, skip it.
+		while(*(text + i) != 0x00) {
+			if(*(text + (i++)) == 0x0a)
+				break;
+		}
+	}
+	return i;
+}
+
+static void parse_hw_config(struct hw_config *hw_conf)
+{
+	unsigned long count, offset = 0, addr, size;
+	char *file_addr, *file_size;
+	static char *fs_argv[5];
+
+	int valid = 0;
+
+	file_addr = getenv("conf_addr");
+	if (!file_addr) {
+		printf("Can't get conf_addr address\n");
+		file_addr = "0x800000";
+	}
+
+	addr = simple_strtoul(file_addr, NULL, 16);
+	if (!addr)
+		printf("Can't set addr\n");
+
+	fs_argv[0] = "ext2load";
+	fs_argv[1] = "mmc";
+	fs_argv[2] = "0:1";
+	fs_argv[3] = file_addr;
+	fs_argv[4] = "config.txt";
+
+	if (do_ext2load(NULL, 0, 5, fs_argv)) {
+		printf("[conf] do_ext2load fail\n");
+		goto end;
+	}
+
+	file_size = getenv("filesize");
+	size = simple_strtoul(file_size, NULL, 16);
+	if (!size) {
+		printf("[conf] Can't get filesize\n");
+		goto end;
+	}
+
+	valid = 1;
+	printf("hw_conf size = %lu\n", size);
+
+	*((char *)addr + size) = 0x00;
+
+	while(offset != size)
+	{
+		count = hw_skip_comment((char *)(addr + offset));
+		if(count > 0) {
+			offset = offset + count;
+			continue;
+		}
+		count = hw_skip_line((char *)(addr + offset));
+		if(count > 0) {
+			offset = offset + count;
+			continue;
+		}
+		count = hw_parse_property((char *)(addr + offset), hw_conf);
+		if(count > 0) {
+			offset = offset + count;
+			continue;
+		}
+	}
+end:
+	hw_conf->valid = valid;
+}
+
+static int set_hw_property(struct fdt_header *working_fdt, char *path, char *property, char *value, int length)
+{
+	int offset;
+	int ret;
+
+	printf("set_hw_property: %s %s %s\n", path, property, value);
+	offset = fdt_path_offset (working_fdt, path);
+	if (offset < 0) {
+		printf("libfdt fdt_path_offset() returned %s\n", fdt_strerror(offset));
+		return -1;
+	}
+	ret = fdt_setprop(working_fdt, offset, property, value, length);
+	if (ret < 0) {
+		printf("libfdt fdt_setprop(): %s\n", fdt_strerror(ret));
+		return -1;
+	}
+
+	return 0;
+}
+
+static void handle_hw_conf(struct hw_config *hw_conf)
+{
+	struct fdt_header *working_fdt;
+	unsigned long addr;
+	char *file_addr;
+
+	int err;
+
+	file_addr = getenv("fdt_addr");
+	if (!file_addr) {
+		printf("Can't get fdt address, set default\n");
+		file_addr = "0x43000000";
+	}
+	addr = simple_strtoul(file_addr, NULL, 16);
+	if (!addr) {
+		printf("Can't get fdt address\n");
+		return;
+	}
+
+	working_fdt = map_sysmem(addr, 0);
+	err = fdt_open_into(working_fdt, working_fdt, fdt_totalsize(working_fdt) + 1024);
+	if (err != 0) {
+		printf("libfdt fdt_open_into(): %s\n", fdt_strerror(err));
+		return;
+	}
+
+	printf("fdt magic number %x\n", working_fdt->magic);
+	printf("fdt size %u\n", fdt_totalsize(working_fdt));
+
+	if (hw_conf->uart1 == 1)
+		set_hw_property(working_fdt, "/serial@30860000", "status", "okay", 5);
+	else if (hw_conf->uart1 == -1)
+		set_hw_property(working_fdt, "/serial@30860000", "status", "disabled", 9);
+	if (hw_conf->uart3 == 1)
+		set_hw_property(working_fdt, "/serial@30880000", "status", "okay", 5);
+	else if (hw_conf->uart3 == -1)
+		set_hw_property(working_fdt, "/serial@30880000", "status", "disabled", 9);
+	if (hw_conf->uart4 == 1)
+		set_hw_property(working_fdt, "/serial@30a60000", "status", "okay", 5);
+	else if (hw_conf->uart4 == -1)
+		set_hw_property(working_fdt, "/serial@30a60000", "status", "disabled", 9);
+
+	if (hw_conf->sai1 == 1)
+		set_hw_property(working_fdt, "/sai@30010000", "status", "okay", 5);
+	else if (hw_conf->sai1 == -1)
+		set_hw_property(working_fdt, "/sai@30010000", "status", "disabled", 9);
+	if (hw_conf->sai5 == 1)
+		set_hw_property(working_fdt, "/sai@30040000", "status", "okay", 5);
+	else if (hw_conf->sai5 == -1)
+		set_hw_property(working_fdt, "/sai@30040000", "status", "disabled", 9);
+
+	if (hw_conf->spi1 == 1)
+		set_hw_property(working_fdt, "/ecspi@30820000", "status", "okay", 5);
+	else if (hw_conf->spi1 == -1)
+		set_hw_property(working_fdt, "/ecspi@30820000", "status", "disabled", 9);
+	if (hw_conf->spi2 == 1)
+		set_hw_property(working_fdt, "/ecspi@30830000", "status", "okay", 5);
+	else if (hw_conf->spi2 == -1)
+		set_hw_property(working_fdt, "/ecspi@30830000", "status", "disabled", 9);
+
+	if (hw_conf->pwm1 == 1)
+		set_hw_property(working_fdt, "/pwm@30660000", "status", "okay", 5);
+	else if (hw_conf->pwm1 == -1)
+		set_hw_property(working_fdt, "/pwm@30660000", "status", "disabled", 9);
+	if (hw_conf->pwm2 == 1)
+		set_hw_property(working_fdt, "/pwm@30670000", "status", "okay", 5);
+	else if (hw_conf->pwm2 == -1)
+		set_hw_property(working_fdt, "/pwm@30670000", "status", "disabled", 9);
+	if (hw_conf->pwm3 == 1)
+		set_hw_property(working_fdt, "/pwm@30680000", "status", "okay", 5);
+	else if (hw_conf->pwm3 == -1)
+		set_hw_property(working_fdt, "/pwm@30680000", "status", "disabled", 9);
+
+}
+
 #if defined(CONFIG_IMAGE_FORMAT_LEGACY)
 static const image_header_t *image_get_fdt(ulong fdt_addr)
 {
@@ -120,6 +450,25 @@ int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size)
 	int	err;
 	int	disable_relocation = 0;
 
+	struct hw_config hw_conf;
+	memset(&hw_conf, 0, sizeof(struct hw_config));
+	parse_hw_config(&hw_conf);
+
+	printf("config.valid = %d\n", hw_conf.valid);
+	if(hw_conf.valid == 1) {
+		printf("config on: 1, config off: -1, no config: 0\n");
+		printf("config.uart1 = %d\n", hw_conf.uart1);
+		printf("config.uart3 = %d\n", hw_conf.uart3);
+		printf("config.uart4 = %d\n", hw_conf.uart4);
+		printf("config.sai1 = %d\n", hw_conf.sai1);
+		printf("config.sai5 = %d\n", hw_conf.sai5);
+		printf("config.spi1 = %d\n", hw_conf.spi1);
+		printf("config.spi2 = %d\n", hw_conf.spi2);
+		printf("config.pwm1 = %d\n", hw_conf.pwm1);
+		printf("config.pwm2 = %d\n", hw_conf.pwm2);
+		printf("config.pwm3 = %d\n", hw_conf.pwm3);
+	}
+
 	/* nothing to do */
 	if (*of_size == 0)
 		return 0;
@@ -194,6 +543,10 @@ int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size)
 	*of_size = of_len;
 
 	set_working_fdt_addr((ulong)*of_flat_tree);
+
+	if(hw_conf.valid)
+		handle_hw_conf(&hw_conf);
+
 	return 0;
 
 error:

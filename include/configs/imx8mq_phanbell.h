@@ -107,12 +107,15 @@
 		"\0" \
 	"initrd_addr=0x43800000\0" \
 	"initrd_high=0xffffffff\0" \
+	"conf_addr=0x800000\0" \
+	"fdt_addr=0x43000000\0" \
 	"bootcmd_mfg=run mfgtool_args;booti ${loadaddr} ${initrd_addr} ${fdt_addr};\0" \
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
 	"script=boot.scr\0" \
 	"image=Image\0" \
+	"conf_addr=0x800000\0" \
 	"console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200\0" \
 	"fdt_addr=0x43000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
