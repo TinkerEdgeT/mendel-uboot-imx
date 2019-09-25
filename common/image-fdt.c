@@ -32,6 +32,7 @@ static void fdt_error(const char *msg)
 	puts(" - must RESET the board to recover.\n");
 }
 
+#define MAX_OVERLAY_NAME_LENGTH 128
 struct hw_config
 {
 	int valid;
@@ -40,6 +41,9 @@ struct hw_config
 	int sai1, sai5;
 	int spi1, spi2;
 	int pwm1, pwm2, pwm3;
+
+	int overlay_count;
+	char **overlay_file;
 };
 
 static unsigned long hw_skip_comment(char *text)
@@ -182,8 +186,51 @@ invalid_line:
 	while(*(text + i) != 0x00)
 	{
 		if(*(text + (i++)) == 0x0a)
-		break;
+			break;
 	}
+	return i;
+}
+
+static int set_file_conf(char *text, struct hw_config *hw_conf, int start_point, int file_ptr)
+{
+	char *ptr;
+	int name_length;
+
+	name_length = file_ptr - start_point;
+
+	if(name_length && name_length < MAX_OVERLAY_NAME_LENGTH) {
+		ptr = (char*)calloc(MAX_OVERLAY_NAME_LENGTH, sizeof(char));
+		memcpy(ptr, text + start_point, name_length);
+		ptr[name_length] = 0x00;
+		hw_conf->overlay_file[hw_conf->overlay_count] = ptr;
+		hw_conf->overlay_count += 1;
+
+		//Pass a space for next string.
+		start_point = file_ptr + 1;
+	}
+
+	return start_point;
+}
+
+static unsigned long get_overlay(char *text, struct hw_config *hw_conf)
+{
+	int i = 0;
+	int start_point = 0;
+	int name_length;
+
+	hw_conf->overlay_count = 0;
+	while(*(text + i) != 0x00)
+	{
+		if(*(text + i) == 0x20)
+			start_point = set_file_conf(text, hw_conf, start_point, i);
+
+		if(*(text + i) == 0x0a)
+			break;
+		i++;
+	}
+
+	start_point = set_file_conf(text, hw_conf, start_point, i);
+
 	return i;
 }
 
@@ -193,6 +240,9 @@ static unsigned long hw_parse_property(char *text, struct hw_config *hw_conf)
 	if(memcmp(text, "intf:",  5) == 0) {
 		i = 5;
 		i = i + get_value(text + i, hw_conf);
+	} else if(memcmp(text, "overlay=",  8) == 0) {
+		i = 8;
+		i = i + get_overlay(text + i, hw_conf);
 	} else {
 		printf("[conf] hw_parse_property: illegal line\n");
 		//It's not a legal line, skip it.
@@ -287,7 +337,7 @@ static int set_hw_property(struct fdt_header *working_fdt, char *path, char *pro
 	return 0;
 }
 
-static void handle_hw_conf(struct hw_config *hw_conf)
+static struct fdt_header *resize_working_fdt(void)
 {
 	struct fdt_header *working_fdt;
 	unsigned long addr;
@@ -303,18 +353,124 @@ static void handle_hw_conf(struct hw_config *hw_conf)
 	addr = simple_strtoul(file_addr, NULL, 16);
 	if (!addr) {
 		printf("Can't get fdt address\n");
-		return;
+		return NULL;
 	}
 
 	working_fdt = map_sysmem(addr, 0);
-	err = fdt_open_into(working_fdt, working_fdt, fdt_totalsize(working_fdt) + 1024);
+	err = fdt_open_into(working_fdt, working_fdt, (1024 * 1024));
 	if (err != 0) {
 		printf("libfdt fdt_open_into(): %s\n", fdt_strerror(err));
-		return;
+		return NULL;
 	}
 
 	printf("fdt magic number %x\n", working_fdt->magic);
 	printf("fdt size %u\n", fdt_totalsize(working_fdt));
+
+	return working_fdt;
+}
+
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+static int fdt_valid(struct fdt_header **blobp)
+{
+	const void *blob = *blobp;
+	int err;
+
+	if (blob == NULL) {
+		printf ("The address of the fdt is invalid (NULL).\n");
+		return 0;
+	}
+
+	err = fdt_check_header(blob);
+	if (err == 0)
+		return 1;	/* valid */
+
+	if (err < 0) {
+		printf("libfdt fdt_check_header(): %s", fdt_strerror(err));
+		/*
+		 * Be more informative on bad version.
+		 */
+		if (err == -FDT_ERR_BADVERSION) {
+			if (fdt_version(blob) < FDT_FIRST_SUPPORTED_VERSION)
+				printf (" - too old, fdt %d < %d", fdt_version(blob), FDT_FIRST_SUPPORTED_VERSION);
+			if (fdt_last_comp_version(blob) > FDT_LAST_SUPPORTED_VERSION)
+				printf (" - too new, fdt %d > %d", fdt_version(blob), FDT_LAST_SUPPORTED_VERSION);
+		}
+		printf("\n");
+		*blobp = NULL;
+		return 0;
+	}
+	return 1;
+}
+
+static int merge_dts_overlay(cmd_tbl_t *cmdtp, struct fdt_header *working_fdt, char *overlay_name)
+{
+	unsigned long addr;
+	char *file_addr;
+	struct fdt_header *blob;
+	int ret;
+
+	static char *fs_argv[5];
+
+	file_addr = getenv("fdt_overlay_addr");
+	if (!file_addr) {
+		printf("Can't get fdt overlay, set default\n");
+		file_addr = "0x42000000";
+	}
+	addr = simple_strtoul(file_addr, NULL, 16);
+	if (!addr) {
+		printf("Can't get fdt overlay\n");
+		goto fail;
+	}
+
+	strncat(overlay_name, ".dtbo", 6);
+
+	fs_argv[0] = "ext2load";
+	fs_argv[1] = "mmc";
+	fs_argv[2] = "0:1";
+	fs_argv[3] = file_addr;
+	fs_argv[4] = overlay_name;
+
+	if (do_ext2load(NULL, 0, 5, fs_argv)) {
+		printf("[merge_dts_overlay] do_ext2load fail\n");
+		goto fail;
+	}
+
+	blob = map_sysmem(addr, 0);
+	if (!fdt_valid(&blob)) {
+		printf("[merge_dts_overlay] fdt_valid is invalid\n");
+		goto fail;
+	} else
+		printf("fdt_valid\n");
+
+	ret = fdt_overlay_apply(working_fdt, blob);
+	if (ret) {
+		printf("[merge_dts_overlay] fdt_overlay_apply(): %s\n", fdt_strerror(ret));
+		goto fail;
+	}
+
+	return 0;
+
+fail:
+	return -1;
+}
+#endif
+
+static void handle_hw_conf(cmd_tbl_t *cmdtp, struct fdt_header *working_fdt, struct hw_config *hw_conf)
+{
+	if(working_fdt == NULL)
+		return;
+
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+	int i;
+	for (i = 0; i < hw_conf->overlay_count; i++) {
+		if(merge_dts_overlay(cmdtp, working_fdt, hw_conf->overlay_file[i]) < 0)
+			printf("Can't merge dts overlay: %s\n", hw_conf->overlay_file[i]);
+		else
+			printf("Merged dts overlay: %s\n", hw_conf->overlay_file[i]);
+
+		free(hw_conf->overlay_file[i]);
+	}
+#endif
 
 	if (hw_conf->uart1 == 1)
 		set_hw_property(working_fdt, "/serial@30860000", "status", "okay", 5);
@@ -450,6 +606,7 @@ int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size)
 	int	err;
 	int	disable_relocation = 0;
 
+	struct fdt_header *working_fdt;
 	struct hw_config hw_conf;
 	memset(&hw_conf, 0, sizeof(struct hw_config));
 	parse_hw_config(&hw_conf);
@@ -467,6 +624,9 @@ int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size)
 		printf("config.pwm1 = %d\n", hw_conf.pwm1);
 		printf("config.pwm2 = %d\n", hw_conf.pwm2);
 		printf("config.pwm3 = %d\n", hw_conf.pwm3);
+
+		for (int i = 0; i < hw_conf.overlay_count; i++)
+			printf("get overlay name: %s\n", hw_conf.overlay_file[i]);
 	}
 
 	/* nothing to do */
@@ -544,8 +704,11 @@ int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size)
 
 	set_working_fdt_addr((ulong)*of_flat_tree);
 
-	if(hw_conf.valid)
-		handle_hw_conf(&hw_conf);
+	working_fdt = resize_working_fdt();
+	if(working_fdt != NULL) {
+		if(hw_conf.valid)
+			handle_hw_conf(NULL, working_fdt, &hw_conf);
+	}
 
 	return 0;
 
