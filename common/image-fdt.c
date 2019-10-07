@@ -42,6 +42,8 @@ struct hw_config
 	int spi1, spi2;
 	int pwm1, pwm2, pwm3;
 
+	int fec1;
+
 	int overlay_count;
 	char **overlay_file;
 };
@@ -67,7 +69,7 @@ static unsigned long hw_skip_line(char *text)
 		return 0;
 }
 
-static unsigned long get_value(char *text, struct hw_config *hw_conf)
+static unsigned long get_intf_value(char *text, struct hw_config *hw_conf)
 {
 	int i = 0;
 	if(memcmp(text, "uart1=",  6) == 0) {
@@ -191,6 +193,40 @@ invalid_line:
 	return i;
 }
 
+static unsigned long get_conf_value(char *text, struct hw_config *hw_conf)
+{
+	int i = 0;
+	if (memcmp(text, "eth_wakeup=", 11) == 0) {
+		i = 11;
+		if(memcmp(text + i, "on", 2) == 0) {
+			hw_conf->fec1 = 1;
+			i = i + 2;
+		} else if(memcmp(text + i, "off", 3) == 0) {
+			hw_conf->fec1 = -1;
+			i = i + 3;
+		} else
+			goto invalid_line;
+	} else
+		goto invalid_line;
+
+	while(*(text + i) != 0x00)
+	{
+		if(*(text + (i++)) == 0x0a)
+			break;
+	}
+	return i;
+
+invalid_line:
+	//It's not a legal line, skip it.
+	//printf("get_value: illegal line\n");
+	while(*(text + i) != 0x00)
+	{
+		if(*(text + (i++)) == 0x0a)
+			break;
+	}
+	return i;
+}
+
 static int set_file_conf(char *text, struct hw_config *hw_conf, int start_point, int file_ptr)
 {
 	char *ptr;
@@ -239,7 +275,10 @@ static unsigned long hw_parse_property(char *text, struct hw_config *hw_conf)
 	int i = 0;
 	if(memcmp(text, "intf:",  5) == 0) {
 		i = 5;
-		i = i + get_value(text + i, hw_conf);
+		i = i + get_intf_value(text + i, hw_conf);
+	} else if (memcmp(text, "conf:",  5) == 0) {
+		i = 5;
+		i = i + get_conf_value(text + i, hw_conf);
 	} else if(memcmp(text, "overlay=",  8) == 0) {
 		i = 8;
 		i = i + get_overlay(text + i, hw_conf);
@@ -516,6 +555,11 @@ static void handle_hw_conf(cmd_tbl_t *cmdtp, struct fdt_header *working_fdt, str
 	else if (hw_conf->pwm3 == -1)
 		set_hw_property(working_fdt, "/pwm@30680000", "status", "disabled", 9);
 
+	if (hw_conf->fec1 == 1)
+		set_hw_property(working_fdt, "/ethernet@30be0000", "wakeup-enable", "1", 2);
+	else if (hw_conf->fec1 == -1)
+		set_hw_property(working_fdt, "/ethernet@30be0000", "wakeup-enable", "0", 2);
+
 }
 
 #if defined(CONFIG_IMAGE_FORMAT_LEGACY)
@@ -611,19 +655,20 @@ int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size)
 	memset(&hw_conf, 0, sizeof(struct hw_config));
 	parse_hw_config(&hw_conf);
 
-	printf("config.valid = %d\n", hw_conf.valid);
+	printf("config.txt valid = %d\n", hw_conf.valid);
 	if(hw_conf.valid == 1) {
 		printf("config on: 1, config off: -1, no config: 0\n");
-		printf("config.uart1 = %d\n", hw_conf.uart1);
-		printf("config.uart3 = %d\n", hw_conf.uart3);
-		printf("config.uart4 = %d\n", hw_conf.uart4);
-		printf("config.sai1 = %d\n", hw_conf.sai1);
-		printf("config.sai5 = %d\n", hw_conf.sai5);
-		printf("config.spi1 = %d\n", hw_conf.spi1);
-		printf("config.spi2 = %d\n", hw_conf.spi2);
-		printf("config.pwm1 = %d\n", hw_conf.pwm1);
-		printf("config.pwm2 = %d\n", hw_conf.pwm2);
-		printf("config.pwm3 = %d\n", hw_conf.pwm3);
+		printf("intf.uart1 = %d\n", hw_conf.uart1);
+		printf("intf.uart3 = %d\n", hw_conf.uart3);
+		printf("intf.uart4 = %d\n", hw_conf.uart4);
+		printf("intf.sai1 = %d\n", hw_conf.sai1);
+		printf("intf.sai5 = %d\n", hw_conf.sai5);
+		printf("intf.spi1 = %d\n", hw_conf.spi1);
+		printf("intf.spi2 = %d\n", hw_conf.spi2);
+		printf("intf.pwm1 = %d\n", hw_conf.pwm1);
+		printf("intf.pwm2 = %d\n", hw_conf.pwm2);
+		printf("intf.pwm3 = %d\n", hw_conf.pwm3);
+		printf("conf.eth_wakeup = %d\n", hw_conf.fec1);
 
 		for (int i = 0; i < hw_conf.overlay_count; i++)
 			printf("get overlay name: %s\n", hw_conf.overlay_file[i]);
