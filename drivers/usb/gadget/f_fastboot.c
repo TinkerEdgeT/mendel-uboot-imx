@@ -118,6 +118,7 @@ char *fastboot_common_var[FASTBOOT_COMMON_VAR_NUM] = {
 	"battery-voltage",
 	"variant",
 	"battery-soc-ok"
+	"bootdev"
 };
 
 /* Boot metric variables */
@@ -2491,6 +2492,10 @@ static int get_single_var(char *cmd, char *response)
 		} else {
 			strncat(response, fb_part->fstype, chars_left);
 		}
+	} else if (!strcmp_l1("bootdev", cmd)) {
+		char *boot_dev;
+		boot_dev = getenv("bootdev");
+		strncat(response, boot_dev, chars_left);
 	} else if (!strcmp_l1("version-baseband", cmd)) {
 		strncat(response, "N/A", chars_left);
 	} else if (!strcmp_l1("version-bootloader", cmd) ||
