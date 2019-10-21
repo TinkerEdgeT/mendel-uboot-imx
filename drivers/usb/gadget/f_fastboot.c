@@ -69,7 +69,7 @@ extern void trusty_os_init(void);
 #ifdef CONFIG_FASTBOOT_LOCK
 #include "fastboot_lock_unlock.h"
 #endif
-#define FASTBOOT_COMMON_VAR_NUM	13
+#define FASTBOOT_COMMON_VAR_NUM	14
 #define FASTBOOT_VAR_YES    "yes"
 #define FASTBOOT_VAR_NO     "no"
 
@@ -117,7 +117,7 @@ char *fastboot_common_var[FASTBOOT_COMMON_VAR_NUM] = {
 	"off-mode-charge",
 	"battery-voltage",
 	"variant",
-	"battery-soc-ok"
+	"battery-soc-ok",
 	"bootdev"
 };
 
