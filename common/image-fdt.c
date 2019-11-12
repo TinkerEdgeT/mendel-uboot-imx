@@ -40,7 +40,7 @@ struct hw_config
 	int uart1, uart3, uart4;
 	int sai1, sai5;
 	int spi1, spi2;
-	int pwm1, pwm2, pwm3;
+	int pwm1, pwm2, pwm4;
 
 	int fec1;
 
@@ -162,13 +162,13 @@ static unsigned long get_intf_value(char *text, struct hw_config *hw_conf)
 			i = i + 3;
 		} else
 			goto invalid_line;
-	} else if(memcmp(text, "pwm3=",  5) == 0) {
+	} else if(memcmp(text, "pwm4=",  5) == 0) {
 		i = 5;
 		if(memcmp(text + i, "on", 2) == 0) {
-			hw_conf->pwm3 = 1;
+			hw_conf->pwm4 = 1;
 			i = i + 2;
 		} else if(memcmp(text + i, "off", 3) == 0) {
-			hw_conf->pwm3 = -1;
+			hw_conf->pwm4 = -1;
 			i = i + 3;
 		} else
 			goto invalid_line;
@@ -550,10 +550,10 @@ static void handle_hw_conf(cmd_tbl_t *cmdtp, struct fdt_header *working_fdt, str
 		set_hw_property(working_fdt, "/pwm@30670000", "status", "okay", 5);
 	else if (hw_conf->pwm2 == -1)
 		set_hw_property(working_fdt, "/pwm@30670000", "status", "disabled", 9);
-	if (hw_conf->pwm3 == 1)
-		set_hw_property(working_fdt, "/pwm@30680000", "status", "okay", 5);
-	else if (hw_conf->pwm3 == -1)
-		set_hw_property(working_fdt, "/pwm@30680000", "status", "disabled", 9);
+	if (hw_conf->pwm4 == 1)
+		set_hw_property(working_fdt, "/pwm@30690000", "status", "okay", 5);
+	else if (hw_conf->pwm4 == -1)
+		set_hw_property(working_fdt, "/pwm@30690000", "status", "disabled", 9);
 
 	if (hw_conf->fec1 == 1)
 		set_hw_property(working_fdt, "/ethernet@30be0000", "wakeup-enable", "1", 2);
@@ -658,6 +658,7 @@ int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size)
 	printf("config.txt valid = %d\n", hw_conf.valid);
 	if(hw_conf.valid == 1) {
 		printf("config on: 1, config off: -1, no config: 0\n");
+		/*  Do not open to user.
 		printf("intf.uart1 = %d\n", hw_conf.uart1);
 		printf("intf.uart3 = %d\n", hw_conf.uart3);
 		printf("intf.uart4 = %d\n", hw_conf.uart4);
@@ -667,7 +668,8 @@ int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size)
 		printf("intf.spi2 = %d\n", hw_conf.spi2);
 		printf("intf.pwm1 = %d\n", hw_conf.pwm1);
 		printf("intf.pwm2 = %d\n", hw_conf.pwm2);
-		printf("intf.pwm3 = %d\n", hw_conf.pwm3);
+		printf("intf.pwm4 = %d\n", hw_conf.pwm4);
+		    Do not open to user.  */
 		printf("conf.eth_wakeup = %d\n", hw_conf.fec1);
 
 		for (int i = 0; i < hw_conf.overlay_count; i++)
