@@ -515,6 +515,7 @@ static int merge_dts_overlay(cmd_tbl_t *cmdtp, struct fdt_header *working_fdt, c
 	char *file_addr;
 	struct fdt_header *blob;
 	int ret;
+	char overlay_file[] = "overlays/";
 
 	static char *fs_argv[5];
 
@@ -529,13 +530,14 @@ static int merge_dts_overlay(cmd_tbl_t *cmdtp, struct fdt_header *working_fdt, c
 		goto fail;
 	}
 
-	strncat(overlay_name, ".dtbo", 6);
+	strcat(overlay_file, overlay_name);
+	strncat(overlay_file, ".dtbo", 6);
 
 	fs_argv[0] = "ext2load";
 	fs_argv[1] = "mmc";
 	fs_argv[2] = "0:1";
 	fs_argv[3] = file_addr;
-	fs_argv[4] = overlay_name;
+	fs_argv[4] = overlay_file;
 
 	if (do_ext2load(NULL, 0, 5, fs_argv)) {
 		printf("[merge_dts_overlay] do_ext2load fail\n");
