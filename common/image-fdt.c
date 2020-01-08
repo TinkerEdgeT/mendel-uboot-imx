@@ -39,7 +39,7 @@ struct hw_config
 
 	int uart1, uart3, uart4;
 	int sai1, sai5;
-	int spi1, spi2;
+	int spi1;
 	int pwm1, pwm2, pwm4;
 
 	int fec1;
@@ -129,16 +129,6 @@ static unsigned long get_intf_value(char *text, struct hw_config *hw_conf)
 			i = i + 2;
 		} else if(memcmp(text + i, "off", 3) == 0) {
 			hw_conf->spi1 = -1;
-			i = i + 3;
-		} else
-			goto invalid_line;
-	} else if(memcmp(text, "spi2=",  5) == 0) {
-		i = 5;
-		if(memcmp(text + i, "on", 2) == 0) {
-			hw_conf->spi2 = 1;
-			i = i + 2;
-		} else if(memcmp(text + i, "off", 3) == 0) {
-			hw_conf->spi2 = -1;
 			i = i + 3;
 		} else
 			goto invalid_line;
@@ -376,6 +366,58 @@ static int set_hw_property(struct fdt_header *working_fdt, char *path, char *pro
 	return 0;
 }
 
+static int flash_gpio(struct fdt_header *working_fdt, char *path, char *property)
+{
+	int offset, len;;
+	const fdt32_t *cell;
+	uint32_t adj_val = 0;
+	adj_val = cpu_to_fdt32(adj_val);
+
+	int UART1_RXD_GPIO5_IO22[5] = { 564, 1180, 0, 5, 0};
+	int UART1_TXD_GPIO5_IO23[5] = { 568, 1184, 0, 5, 0};
+
+	printf("flash_gpio: %s %s\n", path, property);
+
+	offset = fdt_path_offset (working_fdt, path);
+	if (offset < 0) {
+		printf("libfdt fdt_path_offset() returned %s\n", fdt_strerror(offset));
+		return -1;
+	}
+
+	cell = fdt_getprop(working_fdt, offset, property, &len);
+	if (!cell) {
+		printf("libfdt fdt_getprop(): %s\n", fdt_strerror(cell));
+		return -1;
+	} else {
+		int i, j, get_gpio22, get_gpio23;
+
+		for (i = 0; i < len; i++) {
+			get_gpio22 = 1;
+			for (j = 0; j < 5; j++) {
+				if (fdt32_to_cpu(cell[i + j]) != UART1_RXD_GPIO5_IO22[j]) {
+					get_gpio22 = 0;
+					break;
+				}
+			}
+
+			get_gpio23 = 1;
+			for (j = 0; j < 5; j++) {
+				if (fdt32_to_cpu(cell[i + j]) != UART1_TXD_GPIO5_IO23[j]) {
+					get_gpio23 = 0;
+					break;
+				}
+			}
+
+			if (get_gpio22 || get_gpio23) {
+				for (j = 0; j < 6; j++)
+					fdt_setprop_inplace_namelen_partial(working_fdt, offset, property, strlen(property), (i+j)*4, &adj_val, sizeof(adj_val));
+			}
+		}
+	}
+
+	return 0;
+}
+
 static struct fdt_header *resize_working_fdt(void)
 {
 	struct fdt_header *working_fdt;
@@ -511,9 +553,10 @@ static void handle_hw_conf(cmd_tbl_t *cmdtp, struct fdt_header *working_fdt, str
 	}
 #endif
 
-	if (hw_conf->uart1 == 1)
+	if (hw_conf->uart1 == 1) {
 		set_hw_property(working_fdt, "/serial@30860000", "status", "okay", 5);
-	else if (hw_conf->uart1 == -1)
+		flash_gpio(working_fdt, "/iomuxc@30330000/imx8mq-phanbell/gpio_ctrlgrp", "fsl,pins");
+	} else if (hw_conf->uart1 == -1)
 		set_hw_property(working_fdt, "/serial@30860000", "status", "disabled", 9);
 	if (hw_conf->uart3 == 1)
 		set_hw_property(working_fdt, "/serial@30880000", "status", "okay", 5);
@@ -537,10 +580,6 @@ static void handle_hw_conf(cmd_tbl_t *cmdtp, struct fdt_header *working_fdt, str
 		set_hw_property(working_fdt, "/ecspi@30820000", "status", "okay", 5);
 	else if (hw_conf->spi1 == -1)
 		set_hw_property(working_fdt, "/ecspi@30820000", "status", "disabled", 9);
-	if (hw_conf->spi2 == 1)
-		set_hw_property(working_fdt, "/ecspi@30830000", "status", "okay", 5);
-	else if (hw_conf->spi2 == -1)
-		set_hw_property(working_fdt, "/ecspi@30830000", "status", "disabled", 9);
 
 	if (hw_conf->pwm1 == 1)
 		set_hw_property(working_fdt, "/pwm@30660000", "status", "okay", 5);
@@ -658,18 +697,15 @@ int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size)
 	printf("config.txt valid = %d\n", hw_conf.valid);
 	if(hw_conf.valid == 1) {
 		printf("config on: 1, config off: -1, no config: 0\n");
-		/*  Do not open to user.
 		printf("intf.uart1 = %d\n", hw_conf.uart1);
 		printf("intf.uart3 = %d\n", hw_conf.uart3);
 		printf("intf.uart4 = %d\n", hw_conf.uart4);
 		printf("intf.sai1 = %d\n", hw_conf.sai1);
 		printf("intf.sai5 = %d\n", hw_conf.sai5);
 		printf("intf.spi1 = %d\n", hw_conf.spi1);
-		printf("intf.spi2 = %d\n", hw_conf.spi2);
 		printf("intf.pwm1 = %d\n", hw_conf.pwm1);
 		printf("intf.pwm2 = %d\n", hw_conf.pwm2);
 		printf("intf.pwm4 = %d\n", hw_conf.pwm4);
-		    Do not open to user.  */
 		printf("conf.eth_wakeup = %d\n", hw_conf.fec1);
 
 		for (int i = 0; i < hw_conf.overlay_count; i++)
