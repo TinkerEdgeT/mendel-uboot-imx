@@ -63,7 +63,7 @@ void splash_get_pos(int *x, int *y)
 	char *s = getenv("splashpos");
 
 	if (!s)
-		return;
+		s = SPLASHPOS;
 
 	if (s[0] == 'm')
 		*x = BMP_ALIGN_CENTER;
