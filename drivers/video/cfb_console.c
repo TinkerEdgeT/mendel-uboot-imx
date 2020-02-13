@@ -1869,6 +1869,9 @@ static void *video_logo(void)
 
 #ifdef CONFIG_SPLASH_SCREEN
 	s = getenv("splashimage");
+	if (s == NULL)
+		s = SPLASHIMAGE;
+
 	if (s != NULL) {
 		ret = splash_screen_prepare();
 		if (ret < 0)
@@ -1879,11 +1882,13 @@ static void *video_logo(void)
 					video_logo_xpos,
 					video_logo_ypos) == 0) {
 			video_logo_height = 0;
+			printf("Video: video_logo return video_fb_address=%lx\n", (unsigned long *)video_fb_address);
 			return ((void *) (video_fb_address));
 		}
 	}
 #endif /* CONFIG_SPLASH_SCREEN */
 
+	printf("Video: video_logo->logo_plot %lx\n", (unsigned long *)video_fb_address);
 	logo_plot(video_fb_address, video_logo_xpos, video_logo_ypos);
 
 #ifdef CONFIG_SPLASH_SCREEN_ALIGN
@@ -2112,7 +2117,7 @@ static int cfg_video_init(void)
 
 #ifdef CONFIG_VIDEO_LOGO
 	/* Plot the logo and get start point of console */
-	debug("Video: Drawing the logo ...\n");
+	printf("Video: Drawing the logo ...\n");
 	video_console_address = video_logo();
 #else
 	video_console_address = video_fb_address;
