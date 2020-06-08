@@ -10,6 +10,7 @@
 #include <linux/stat.h>
 
 #define FASTBOOT_BCB_CMD "bootonce-bootloader"
+#define UMS_BCB_CMD "bootonce-ums"
 #ifdef CONFIG_ANDROID_RECOVERY
 #define RECOVERY_BCB_CMD "boot-recovery"
 #endif

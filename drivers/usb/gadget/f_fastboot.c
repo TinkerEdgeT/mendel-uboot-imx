@@ -1431,6 +1431,9 @@ static FbBootMode fastboot_get_bootmode(void)
 	if (!strcmp(command, FASTBOOT_BCB_CMD)) {
 		boot_mode = BOOTMODE_FASTBOOT_BCB_CMD;
 	}
+	else if (!strcmp(command, UMS_BCB_CMD)) {
+		boot_mode = BOOTMODE_UMS_BCB_CMD;
+	}
 #ifdef CONFIG_ANDROID_RECOVERY
 	else if (!strcmp(command, RECOVERY_BCB_CMD)) {
 		boot_mode = BOOTMODE_RECOVERY_BCB_CMD;
@@ -1486,6 +1489,14 @@ void fastboot_run_bootmode(void)
 		is_recovery_mode = false;
 #endif
 		run_command("fastboot 0", 0);
+		break;
+	case BOOTMODE_UMS_BCB_CMD:
+		/* Make the boot into ums mode*/
+		puts("UMS: Got UMS commands!\n");
+#ifdef CONFIG_SYSTEM_RAMDISK_SUPPORT
+		is_recovery_mode = false;
+#endif
+		run_command("ums 0 mmc 0", 0);
 		break;
 #ifdef CONFIG_ANDROID_RECOVERY
 	case BOOTMODE_RECOVERY_BCB_CMD:

@@ -91,7 +91,9 @@ typedef enum {
 	/* Fastboot boot due to bootonce-bootloader cmd in misc parition */
 	BOOTMODE_FASTBOOT_BCB_CMD,
 	/* Normal boot */
-	BOOTMODE_NORMAL
+	BOOTMODE_NORMAL,
+	/* UMS boot due to bootonce-ums cmd in misc parition */
+	BOOTMODE_UMS_BCB_CMD
 }FbBootMode;
 
 
