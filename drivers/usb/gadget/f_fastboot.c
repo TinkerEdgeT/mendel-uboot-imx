@@ -69,7 +69,7 @@ extern void trusty_os_init(void);
 #ifdef CONFIG_FASTBOOT_LOCK
 #include "fastboot_lock_unlock.h"
 #endif
-#define FASTBOOT_COMMON_VAR_NUM	13
+#define FASTBOOT_COMMON_VAR_NUM	14
 #define FASTBOOT_VAR_YES    "yes"
 #define FASTBOOT_VAR_NO     "no"
 
@@ -117,7 +117,8 @@ char *fastboot_common_var[FASTBOOT_COMMON_VAR_NUM] = {
 	"off-mode-charge",
 	"battery-voltage",
 	"variant",
-	"battery-soc-ok"
+	"battery-soc-ok",
+	"bootdev"
 };
 
 /* Boot metric variables */
@@ -2491,6 +2492,10 @@ static int get_single_var(char *cmd, char *response)
 		} else {
 			strncat(response, fb_part->fstype, chars_left);
 		}
+	} else if (!strcmp_l1("bootdev", cmd)) {
+		char *boot_dev;
+		boot_dev = getenv("bootdev");
+		strncat(response, boot_dev, chars_left);
 	} else if (!strcmp_l1("version-baseband", cmd)) {
 		strncat(response, "N/A", chars_left);
 	} else if (!strcmp_l1("version-bootloader", cmd) ||
