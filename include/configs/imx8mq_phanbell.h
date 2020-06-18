@@ -112,12 +112,17 @@
 	"initrd_high=0xffffffffffffffff\0" \
 	"emmc_dev=0\0"\
 	"sd_dev=1\0" \
+	"conf_addr=0x800000\0" \
+	"fdt_overlay_addr=0x42000000\0" \
+	"fdt_addr=0x43000000\0" \
 
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
 	"script=boot.scr\0" \
 	"image=Image\0" \
+	"conf_addr=0x800000\0" \
+	"fdt_overlay_addr=0x42000000\0" \
 	"console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200\0" \
 	"fdt_addr=0x43000000\0"			\
 	"fdt_high=0xffffffffffffffff\0"		\
