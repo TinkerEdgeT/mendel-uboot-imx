@@ -289,3 +289,21 @@
 	"initrd_high=0xffffffffffffffff\0"	\
 	
 #endif
+
+/* Framebuffer */
+#ifdef CONFIG_VIDEO
+#define CONFIG_VIDEO_IMXDCSS
+#define CONFIG_VIDEO_BMP_RLE8
+#define CONFIG_SPLASH_SCREEN
+#define CONFIG_SPLASH_SCREEN_ALIGN
+#define CONFIG_SPLASH_SOURCE
+#define CONFIG_BMP_16BPP
+#define CONFIG_VIDEO_LOGO
+#define CONFIG_VIDEO_BMP_LOGO
+#define CONFIG_IMX_VIDEO_SKIP
+#define CONFIG_FS_EXT4
+#define SPLASHIMAGE "0x43100000"
+#define SPLASHFILE "splash.bmp"
+#define SPLASHSOURCE "mmc_fs"
+#define SPLASHPOS "m,m"
+#endif

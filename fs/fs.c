@@ -184,7 +184,7 @@ static struct fstype_info fstypes[] = {
 	},
 #endif
 
-#if CONFIG_IS_ENABLED(FS_EXT4)
+#ifdef CONFIG_FS_EXT4
 	{
 		.fstype = FS_TYPE_EXT,
 		.name = "ext4",

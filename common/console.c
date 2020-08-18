@@ -883,6 +883,7 @@ int console_init_r(void)
 	struct list_head *list = stdio_get_list();
 	struct list_head *pos;
 	struct stdio_dev *dev;
+	__maybe_unused char *s;
 
 	console_update_silent();
 
@@ -893,7 +894,11 @@ int console_init_r(void)
 	 * console to serial console in this case or suppress it if
 	 * "silent" mode was requested.
 	 */
-	if (env_get("splashimage") != NULL) {
+	s = getenv("splashimage");
+	if (s == NULL)
+		s = SPLASHIMAGE;
+
+	if (s != NULL) {
 		if (!(gd->flags & GD_FLG_SILENT))
 			outputdev = search_device (DEV_FLAGS_OUTPUT, "serial");
 	}

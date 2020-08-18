@@ -114,7 +114,8 @@ static int splash_select_fs_dev(struct splash_location *location)
 
 	switch (location->storage) {
 	case SPLASH_STORAGE_MMC:
-		res = fs_set_blk_dev("mmc", location->devpart, FS_TYPE_ANY);
+		printf("splash_select_fs_dev mmc\n");
+		res = fs_set_blk_dev("mmc", location->devpart, FS_TYPE_EXT);
 		break;
 	case SPLASH_STORAGE_USB:
 		res = fs_set_blk_dev("usb", location->devpart, FS_TYPE_ANY);
@@ -223,6 +224,8 @@ static int splash_load_fs(struct splash_location *location, u32 bmp_load_addr)
 	if (!splash_file)
 		splash_file = SPLASH_SOURCE_DEFAULT_FILE_NAME;
 
+	printf("splash_load_fs splashfile=%s\n", splash_file);
+
 	if (location->storage == SPLASH_STORAGE_USB)
 		res = splash_init_usb();
 
@@ -246,7 +249,7 @@ static int splash_load_fs(struct splash_location *location, u32 bmp_load_addr)
 	}
 
 	if (bmp_load_addr + bmp_size >= gd->start_addr_sp) {
-		printf("Error: splashimage address too high. Data overwrites U-Boot and/or placed beyond DRAM boundaries.\n");
+		printf("Error: splashimage address too high. Data overwrites U-Boot and/or placed beyond DRAM boundaries. %x %lx %lx\n", bmp_load_addr,(unsigned int) bmp_size, gd->start_addr_sp);
 		res = -EFAULT;
 		goto out;
 	}
@@ -287,7 +290,7 @@ static struct splash_location *select_splash_location(
 
 	env_splashsource = env_get("splashsource");
 	if (env_splashsource == NULL)
-		return &locations[0];
+		env_splashsource = SPLASHSOURCE;
 
 	for (i = 0; i < size; i++) {
 		if (!strcmp(locations[i].name, env_splashsource))
@@ -389,7 +392,9 @@ int splash_source_load(struct splash_location *locations, uint size)
 
 	env_splashimage_value = env_get("splashimage");
 	if (env_splashimage_value == NULL)
-		return -ENOENT;
+		env_splashimage_value = SPLASHIMAGE;
+
+	printf("splash_screen_prepare splashimag=%s\n", env_splashimage_value);
 
 	bmp_load_addr = simple_strtoul(env_splashimage_value, 0, 16);
 	if (bmp_load_addr == 0) {
@@ -400,6 +405,8 @@ int splash_source_load(struct splash_location *locations, uint size)
 	splash_location = select_splash_location(locations, size);
 	if (!splash_location)
 		return -EINVAL;
+
+	printf("splash_screen_prepare splash_location->name=%s\n",splash_location->name);
 
 	if (splash_location->flags == SPLASH_STORAGE_RAW)
 		return splash_load_raw(splash_location, bmp_load_addr);
