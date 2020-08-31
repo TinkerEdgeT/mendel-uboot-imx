@@ -46,9 +46,9 @@
 #endif
 
 #if defined(CONFIG_ANDROID_THINGS_SUPPORT) && defined(CONFIG_ARCH_IMX8M)
-#define FASTBOOT_COMMON_VAR_NUM 14
+#define FASTBOOT_COMMON_VAR_NUM 15
 #else
-#define FASTBOOT_COMMON_VAR_NUM 13
+#define FASTBOOT_COMMON_VAR_NUM 14
 #endif
 
 #define FASTBOOT_VAR_YES    "yes"
@@ -69,6 +69,7 @@ char *fastboot_common_var[FASTBOOT_COMMON_VAR_NUM] = {
 	"battery-voltage",
 	"variant",
 	"battery-soc-ok",
+	"bootdev",
 #if defined(CONFIG_ANDROID_THINGS_SUPPORT) && defined(CONFIG_ARCH_IMX8M)
 	"baseboard_id"
 #endif
@@ -199,6 +200,10 @@ static int get_single_var(char *cmd, char *response)
 		} else {
 			strncat(response, fb_part->fstype, chars_left);
 		}
+	} else if (!strcmp_l1("bootdev", cmd)) {
+		char *boot_dev;
+		boot_dev = env_get("bootdev");
+		strncat(response, boot_dev, chars_left);
 	} else if (!strcmp_l1("version-baseband", cmd)) {
 		strncat(response, "N/A", chars_left);
 	} else if (!strcmp_l1("version-bootloader", cmd) ||
