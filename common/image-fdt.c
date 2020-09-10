@@ -320,7 +320,7 @@ static void parse_hw_config(struct hw_config *hw_conf)
 	file_addr = env_get("conf_addr");
 	if (!file_addr) {
 		printf("Can't get conf_addr address\n");
-		file_addr = "0x800000";
+		file_addr = "0x40000000";
 	}
 
 	addr = simple_strtoul(file_addr, NULL, 16);
