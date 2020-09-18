@@ -112,25 +112,20 @@ int get_baseboard_id() {
 	gpio_direction_input(BASEBOARD_ID_GPIO2);
 	gpio_request(BASEBOARD_ID_GPIO3, "baseboard_id_3");
 	gpio_direction_input(BASEBOARD_ID_GPIO3);
-	gpio_request(BASEBOARD_ID_GPIO4, "baseboard_id_4");
-	gpio_direction_input(BASEBOARD_ID_GPIO4);
 
 	baseboard_id = gpio_get_value(BASEBOARD_ID_GPIO1);
 	baseboard_id |= gpio_get_value(BASEBOARD_ID_GPIO2) << 1;
 	baseboard_id |= gpio_get_value(BASEBOARD_ID_GPIO3) << 2;
-	baseboard_id |= gpio_get_value(BASEBOARD_ID_GPIO4) << 3;
 
 	gpio_free(BASEBOARD_ID_GPIO1);
 	gpio_free(BASEBOARD_ID_GPIO2);
 	gpio_free(BASEBOARD_ID_GPIO3);
-	gpio_free(BASEBOARD_ID_GPIO4);
 #else
 
 	struct gpio_regs *regs = (struct gpio_regs *)BASEBOARD_ID_GPIOS_BASE;
 	baseboard_id = (readl(&regs->gpio_dr) >> BASEBOARD_ID_GPIO1_INDEX) & 0x01;
 	baseboard_id |= (readl(&regs->gpio_dr) >> (BASEBOARD_ID_GPIO2_INDEX - 1)) & 0x02;
 	baseboard_id |= (readl(&regs->gpio_dr) >> (BASEBOARD_ID_GPIO3_INDEX - 2)) & 0x04;
-	baseboard_id |= (readl(&regs->gpio_dr) >> (BASEBOARD_ID_GPIO4_INDEX - 3)) & 0x08;
 #endif
 
 	imx_iomux_v3_setup_multiple_pads(baseboard_id_default_pads,

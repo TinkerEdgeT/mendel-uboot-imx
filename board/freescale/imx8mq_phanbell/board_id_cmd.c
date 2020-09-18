@@ -19,10 +19,14 @@ const char* board_id_names[] = {
 };
 
 const char* baseboard_id_names[] = {
-	"Invalid",
-	"Enterprise",
-	"Yorktown",
-	"Unknown"
+	"1.00",
+	"1.01",
+	"1.02",
+	"1.03",
+	"1.04",
+	"1.05",
+	"1.06",
+	"unknown"
 };
 
 static int do_board_id(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -51,9 +55,8 @@ static int do_baseboard_id(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 
 	if (baseboard_id >= ARRAY_SIZE(baseboard_id_names)) {
 		baseboard_id_name = baseboard_id_names[ARRAY_SIZE(baseboard_id_names) - 1];
-	}
-
-	baseboard_id_name = baseboard_id_names[baseboard_id];
+	} else
+		baseboard_id_name = baseboard_id_names[baseboard_id];
 
 	putc('0' + baseboard_id);
 	puts(": ");
