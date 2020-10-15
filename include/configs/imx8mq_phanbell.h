@@ -93,6 +93,10 @@
 #define CONFIG_PHY_ATHEROS
 #endif
 
+/* M4 specific */
+#define SYS_AUXCORE_BOOTDATA_TCM	0x007E0000
+#define SYS_AUXCORE_BOOTDATA_TCM_SIZE	0x20000
+
 /*
  * Another approach is add the clocks for inmates into clks_init_on
  * in clk-imx8mq.c, then clk_ingore_unused could be removed.

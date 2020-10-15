@@ -350,6 +350,11 @@ int board_late_init(void)
 	snprintf(bootcmd, sizeof(bootcmd), "ext2load mmc %d:1 ${loadaddr} boot.scr; source; boota mmc0 boot_a", mmc_dev);
 	env_set("bootcmd", bootcmd);
 
+	// Set up a command that will load and start the M4.
+	env_set("m4boot", "ext2load mmc ${bootdev}:1 ${m4loadaddr} ${m4image}; dcache flush; bootaux ${m4loadaddr}");
+	env_set("m4image", "m4_fw.bin");
+	env_set("m4loadaddr", __stringify(SYS_AUXCORE_BOOTDATA_TCM));
+
 #ifdef CONFIG_ENV_IS_IN_MMC
 	board_late_mmc_env_init();
 #endif

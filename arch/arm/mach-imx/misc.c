@@ -104,6 +104,10 @@ void board_lmb_reserve(struct lmb *lmb)
 		lmb_reserve(lmb, sp, bank_end - sp);
 		break;
 	}
+
+#if defined(SYS_AUXCORE_BOOTDATA_TCM) && defined(SYS_AUXCORE_BOOTDATA_TCM_SIZE)
+	lmb_add(lmb, SYS_AUXCORE_BOOTDATA_TCM, SYS_AUXCORE_BOOTDATA_TCM_SIZE);
+#endif
 }
 
 void imx_sec_init(void)
