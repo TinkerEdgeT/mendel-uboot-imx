@@ -345,7 +345,7 @@ int board_late_init(void)
 
 	static char bootdev[32];
 	static char bootcmd[128];
-	snprintf(bootdev, sizeof(bootdev), "%d", mmc_get_env_dev());
+	snprintf(bootdev, sizeof(bootdev), "%d", mmc_dev);
 	env_set("bootdev", bootdev);
 	snprintf(bootcmd, sizeof(bootcmd), "ext2load mmc %d:1 ${loadaddr} boot.scr; source; boota mmc0 boot_a", mmc_dev);
 	env_set("bootcmd", bootcmd);
